@@ -93,9 +93,6 @@ import javax.annotation.Nullable;
 public final class VendorCommand implements BlazeCommand {
   public static final String NAME = "vendor";
 
-  // TODO(salmasamy) decide on name and format
-  private static final String VENDOR_IGNORE = ".vendorignore";
-
   @Override
   public void editOptions(OptionsParser optionsParser) {
     // We only need to inject these options with fetch target (when there is a residue)
@@ -314,22 +311,9 @@ public final class VendorCommand implements BlazeCommand {
         env.getDirectories()
             .getOutputBase()
             .getRelative(LabelConstants.EXTERNAL_REPOSITORY_LOCATION);
-    Path vendorIgnore = vendorPath.getRelative(VENDOR_IGNORE);
 
     if (!vendorPath.exists()) {
       vendorPath.createDirectory();
-    }
-
-    // exclude any ignored repo under .vendorignore
-    if (vendorIgnore.exists()) {
-      ImmutableSet<String> ignoredRepos =
-          ImmutableSet.copyOf(FileSystemUtils.readLines(vendorIgnore, UTF_8));
-      reposToVendor =
-          reposToVendor.stream()
-              .filter(repo -> !ignoredRepos.contains(repo.getName()))
-              .collect(toImmutableList());
-    } else {
-      FileSystemUtils.createEmptyFile(vendorIgnore);
     }
 
     env.getReporter().handle(Event.info("Vendoring ..."));
@@ -361,7 +345,7 @@ public final class VendorCommand implements BlazeCommand {
       return false;
     }
 
-    // Since this runs after BazelFetchAllFunction, its guaranteed that the marker files
+    // Since this runs after fetching repos, its guaranteed that the marker files
     // under $OUTPUT_BASE/external are up-to-date. We just need to compare it against the marker
     // under vendor.
     Path externalMarkerFile = externalPath.getChild("@" + repoName + ".marker");
